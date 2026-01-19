@@ -254,19 +254,22 @@ search_anime() {
     
     wait
     
-    # Merge all results, deduplicate by URL, save to cache file
-    cat "$tmp_dir"/* 2>/dev/null | sort -u -t'	' -k1,1 > "$search_cache_file"
+    # Merge all results, deduplicate by URL, filter empty lines, save to cache file
+    cat "$tmp_dir"/* 2>/dev/null | grep -v '^$' | sort -u -t'	' -k1,1 > "$search_cache_file"
     rm -r "$tmp_dir"
     
     [ ! -s "$search_cache_file" ] && return 1
     
     # Group by series and count episodes, merge sources
+    # Sort by relevance: exact initials match first, then by episode count
     cat "$search_cache_file" | while IFS='	' read -r url title; do
+        [ -z "$url" ] || [ -z "$title" ] && continue
         series=$(extract_series_name "$title")
+        [ -z "$series" ] && continue
         source=$(extract_source "$title")
         printf "%s\t%s\n" "$series" "$source"
     done | sort | uniq -c | \
-    awk '
+    awk -v initials="$initials" '
     {
         count = $1
         source = $NF
@@ -289,9 +292,14 @@ search_anime() {
     }
     END {
         for (series in series_count) {
-            printf "%s (%d episodes) [%s]\n", series, series_count[series], series_sources[series]
+            # Relevance score: 2 = exact initials match, 1 = partial match, 0 = no match
+            relevance = 0
+            upper_series = toupper(series)
+            if (upper_series == initials) relevance = 2
+            else if (index(upper_series, initials) > 0) relevance = 1
+            printf "%d\t%05d\t%s (%d episodes) [%s]\n", relevance, series_count[series], series, series_count[series], series_sources[series]
         }
-    }' | sort
+    }' | sort -t'	' -k1,1rn -k2,2rn | cut -f3
 }
 
 # Get episodes for a specific anime series from cached results
