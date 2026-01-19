@@ -1,4 +1,4 @@
-.TH "ANI-CLI" "1" "January 2023" "ani-cli" "User Commands"
+.TH "ANI-CLI" "1" "January 2025" "ani-cli" "User Commands"
 .SH NAME
 ani-cli \- watch anime from the commandline
 .SH SYNOPSIS
@@ -9,7 +9,11 @@ A shell script to browse and search anime from the command-line.
 .PD 0
 .P
 .PD
-This tool scrapes the site allanime.
+This fork scrapes the site videa.hu for anime content from Witanime and Shahiid-anime sources.
+.PD 0
+.P
+.PD
+Video playback is handled via yt-dlp integration with your media player.
 .PD 0
 .P
 .PD
@@ -23,7 +27,7 @@ Specify the episode numbers to watch. If range is specified it should be quoted 
 Continue watching anime from history.
 .TP
 \fB\-d | --download\fR
-Download episode.
+Download episode using yt-dlp.
 .TP
 \fB\-D | --delete\fR
 Delete history.
@@ -34,8 +38,8 @@ Show logs.
 \fB\-h | --help\fR
 Show summary of options.
 .TP
-\fB\-q | --quality\fR \fI\,<best|worst|360|480|720|1080>\/\fR
-Set the video quality. Default quality is best.
+\fB\-q | --quality\fR \fI\,<best|worst|FORMAT>\/\fR
+Set the video quality. Can be 'best', 'worst', or a yt-dlp format specifier. Default quality is best.
 .TP
 \fB\-s | --syncplay\fR
 Watch anime together with friends, using Syncplay (works with mpv only).
@@ -49,40 +53,29 @@ Use VLC as the media player.
 \fB\-S | --select-nth\fR \fI\,<index>\/\fR
 Selects nth entry.
 .TP
-\fB\-N | --nextep-countdown\fR
-Prints a countdown to the next episode as the last episode in the list. If in history is after the current episode.
-.TP
-\fB\--dub\fR
-Play the dubbed version. Without this flag, it'll always play the subbed version.
-.TP
 \fB\--rofi\fR
 Use rofi instead of fzf for the interactive menu
-.TP
-\fB\--skip\fR
-Use ani-skip to skip the intro of the episode (mpv only)
 .TP
 \fB\--no-detach\fR
 Don't detach the player (useful for in-terminal playback, mpv only)
 .TP
 \fB\--exit-after-play\fR
 Exit the player, and return the player exit code (useful for non interactive scenarios, mpv only)
-.TP
-\fB\--skip-title\fR \fI\,<title>\/\fR
-Specify the title to use for ani-skip
+.PP
+.SH DEPENDENCIES
+.PP
+This fork requires yt-dlp to be installed for video extraction and playback.
 .PP
 .SH
 ENVIRONMENT VARIABLES
 .PP
-ani-cli v4 uses environment variables to control unstable/untested and niche features in addition to everything that has an option. Command-line options take precedence over env vars. Note that these are all subject to change.
-.TP
-\fBANI_CLI_MODE\fR
-Controls the scraped media's mode, valid options are sub or dub. Default is sub.
+ani-cli uses environment variables to control unstable/untested and niche features in addition to everything that has an option. Command-line options take precedence over env vars. Note that these are all subject to change.
 .TP
 \fBANI_CLI_DOWNLOAD_DIR\fR
 Controls the directory where files are downloaded. Default is the current dir.
 .TP
 \fBANI_CLI_QUALITY\fR
-Controls the scraped media's quality, check allanime for valid options or set to worst/best. Default is best.
+Controls the video quality. Can be 'best', 'worst', or a yt-dlp format specifier. Default is best.
 .TP
 \fBANI_CLI_PLAYER\fR
 Sets the player ani-cli uses. Can be debug (print links), download (equivalent to -d), android_mpv (apk and am start), android_vlc (apk and am start), flatpak_mpv (for flatpak), catt (for streaming to tv), or any player that can play urls. For defaults see working without arguments.
@@ -105,18 +98,26 @@ Controls the directory ani-cli uses for storing history. A /ani-cli subfolder is
 \fBANI_CLI_DEFAULT_SOURCE\fR
 Controls the default source. Valid is history (equivalent to -c), everything else means search. Default is search.
 .TP
-\fBANI_CLI_SKIP_INTRO\fR
-Controls if ani-skip is used to skip intros (works with mpv only). Can be 0 (disabled) or 1 (enabled). Default is 0.
-.TP
 \fBANI_CLI_NO_DETACH\fR
 Controls if mpv is detached from the main process for playback, which can be useful for use with terminal renderers such as kitty. (works with mpv only). Can be 0 (disabled) or 1 (enabled). Default is 0.
 .TP
-\fBANI_CLI_SKIP_TITLE\fR
-Overrides the anime title to query for skip times. Can be any string value. Default is empty, resolving to the anime title as given by ani-cli.
+\fBANI_CLI_VIDEA_PAGES\fR
+Controls how many pages of search results to fetch from videa.hu. Each page contains approximately 20 results. Default is 3.
 .PP
 .SH EPISODE SELECTION
 .PP
 Multiple episodes can be chosen using fzf (or alternative frontend's) multi-selection mode. For this refer to their instructions.
+.SH ANIME SOURCES
+.PP
+This fork searches two sources on videa.hu:
+.TP
+\fBWitanime\fR
+Uses abbreviated anime names (e.g., "OP" for One Piece, "RK" for Rurouni Kenshin). The script automatically generates initials from your search query.
+.TP
+\fBShahiid-anime\fR
+Uses full anime names. The script searches using your exact query.
+.PP
+Results from both sources are merged and deduplicated. Quality variants (FHD, HD, etc.) are automatically selected based on your -q preference.
 .SH BUGS
 .PP
 Use the GitHub issue tracker:
