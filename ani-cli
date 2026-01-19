@@ -261,7 +261,8 @@ search_anime() {
     [ ! -s "$search_cache_file" ] && return 1
     
     # Group by series and count episodes, merge sources
-    # Sort by relevance: exact initials match first, then by episode count
+    # Sort by relevance: search term match > exact initials match > partial match
+    search_upper=$(printf "%s" "$search_term" | tr '[:lower:]' '[:upper:]')
     cat "$search_cache_file" | while IFS='	' read -r url title; do
         [ -z "$url" ] || [ -z "$title" ] && continue
         series=$(extract_series_name "$title")
@@ -269,7 +270,7 @@ search_anime() {
         source=$(extract_source "$title")
         printf "%s\t%s\n" "$series" "$source"
     done | sort | uniq -c | \
-    awk -v initials="$initials" '
+    awk -v initials="$initials" -v search="$search_upper" '
     {
         count = $1
         source = $NF
@@ -292,11 +293,19 @@ search_anime() {
     }
     END {
         for (series in series_count) {
-            # Relevance score: 2 = exact initials match, 1 = partial match, 0 = no match
+            # Relevance score:
+            # 3 = series contains search term OR exact initials match OR starts with initials (best)
+            # 1 = partial initials match elsewhere
+            # 0 = no match
             relevance = 0
             upper_series = toupper(series)
-            if (upper_series == initials) relevance = 2
-            else if (index(upper_series, initials) > 0) relevance = 1
+            
+            # Check various match types
+            if (index(upper_series, search) > 0) relevance = 3
+            else if (upper_series == initials) relevance = 3
+            else if (length(initials) >= 2 && index(upper_series, initials) == 1) relevance = 3  # starts with initials
+            else if (length(initials) >= 2 && index(upper_series, initials) > 0) relevance = 1
+            
             printf "%d\t%05d\t%s (%d episodes) [%s]\n", relevance, series_count[series], series, series_count[series], series_sources[series]
         }
     }' | sort -t'	' -k1,1rn -k2,2rn | cut -f3
